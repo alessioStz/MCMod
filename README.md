@@ -2,17 +2,21 @@
 
 Windows-App zum Installieren von Fabric und zum Verwalten von Modrinth-Mods in Listen.
 
-## Fertige Programme
+## Herunterladen
 
-Nach dem Build liegen sie in `dist/`:
+Immer die neueste Fassung, ohne GitHub-Konto:
 
 | Datei | Zweck |
 | --- | --- |
-| `ModLoom-1.0.0-portable.exe` | Startet direkt, keine Installation |
-| `ModLoom-1.0.0-Setup.exe` | Installer mit Startmenü-Eintrag, Zielordner frei wählbar |
+| [**Setup**](https://github.com/alessioStz/MCMod/releases/latest/download/ModLoom-1.0.0-Setup.exe) | Installation mit Startmenü-Eintrag, Zielordner frei wählbar |
+| [**Portable**](https://github.com/alessioStz/MCMod/releases/latest/download/ModLoom-1.0.0-portable.exe) | Startet direkt, keine Installation |
+
+Alle Fassungen: [Releases](https://github.com/alessioStz/MCMod/releases)
 
 Beide sind unsigniert — Windows SmartScreen meldet sich beim ersten Start einmal
 ("Weitere Informationen" → "Trotzdem ausführen").
+
+Voraussetzung: Windows 10/11 (64 Bit) und ein vorhandener Minecraft-Ordner.
 
 ## Was die App macht
 
