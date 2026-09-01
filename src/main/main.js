@@ -9,10 +9,41 @@ const store = require('./store');
 const fabric = require('./fabric');
 const modrinth = require('./modrinth');
 const mods = require('./mods');
+const updater = require('./updater');
 
 const LIST_SCHEMA = 'modloom-list@1';
 
 let win = null;
+
+/* ---------------------------------------------------------------- Protokoll */
+
+// Ein Startproblem soll nachvollziehbar sein, ohne dass jemand die App aus der
+// Konsole starten muss. Die Datei wird bei jedem Start neu angelegt.
+const logFile = path.join(app.getPath('userData'), 'modloom.log');
+
+function log(text) {
+  const zeile = `[${new Date().toISOString()}] ${text}\n`;
+  try {
+    fss.mkdirSync(path.dirname(logFile), { recursive: true });
+    fss.appendFileSync(logFile, zeile);
+  } catch {
+    /* Ein fehlgeschlagenes Protokoll darf die App nicht aufhalten. */
+  }
+}
+
+try {
+  fss.mkdirSync(path.dirname(logFile), { recursive: true });
+  fss.writeFileSync(logFile, '');
+} catch {}
+
+process.on('uncaughtException', (err) => {
+  log(`Unbehandelter Fehler: ${err && err.stack ? err.stack : err}`);
+});
+process.on('unhandledRejection', (err) => {
+  log(`Unbehandelte Rejection: ${err && err.stack ? err.stack : err}`);
+});
+
+log(`Start – Version ${app.getVersion()}, gepackt=${app.isPackaged}`);
 
 /* ------------------------------------------------------------------ Fenster */
 
@@ -44,8 +75,42 @@ function createWindow() {
     }
   });
 
+  // Das Fenster darf niemals unsichtbar bleiben. 'ready-to-show' ist im
+  // gepackten Zustand unzuverlässig (feuerte im Test nur in einem von sechs
+  // Starts), deshalb hängt das Anzeigen an drei unabhängigen Auslösern.
+  let revealed = false;
+  const reveal = (grund) => {
+    if (revealed || !win || win.isDestroyed()) return;
+    revealed = true;
+    log(`Fenster anzeigen (${grund})`);
+    win.show();
+    win.focus();
+  };
+
+  win.once('ready-to-show', () => reveal('ready-to-show'));
+  win.webContents.once('did-finish-load', () => reveal('did-finish-load'));
+  const notbremse = setTimeout(() => reveal('Zeitlimit'), 4000);
+  win.once('show', () => clearTimeout(notbremse));
+
+  // Lädt die Seite nicht, ist ein sichtbares Fenster mit Fehlertext immer noch
+  // besser als eine App, die scheinbar gar nicht startet.
+  win.webContents.on('did-fail-load', (_e, code, beschreibung, url) => {
+    log(`Seite nicht geladen: ${code} ${beschreibung} ${url}`);
+    reveal('did-fail-load');
+    dialog.showErrorBox(
+      'ModLoom konnte nicht starten',
+      `Die Oberfläche ließ sich nicht laden (${beschreibung}, Code ${code}).\n\n` +
+        'Bitte die App neu installieren. Ein Fehlerprotokoll liegt unter:\n' +
+        logFile
+    );
+  });
+
+  win.webContents.on('render-process-gone', (_e, details) => {
+    log(`Renderer beendet: ${JSON.stringify(details)}`);
+  });
+
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
-  win.once('ready-to-show', () => win.show());
+
   win.on('closed', () => {
     win = null;
   });
@@ -67,6 +132,14 @@ nativeTheme.on('updated', () => {
 
 app.whenReady().then(() => {
   createWindow();
+
+  updater.init({
+    onStatus: (s) => emit('update:status', s),
+    onLog: (t) => log(`Updater: ${t}`)
+  });
+  // Beim Start still nachsehen: nur melden, wenn es wirklich etwas Neues gibt.
+  setTimeout(() => updater.pruefen({ still: true }).catch(() => {}), 4000);
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
@@ -255,6 +328,22 @@ function extractMods(raw) {
 }
 
 /* Sonstiges */
+
+/* Updates */
+
+handle('update:status', async () => updater.stand());
+handle('update:check', async ({ still } = {}) => updater.pruefen({ still: !!still }));
+handle('update:download', async () => updater.herunterladen());
+handle('update:install', async () => updater.einspielen());
+handle('update:openReleases', async () => {
+  await updater.releaseSeite();
+  return true;
+});
+
+handle('app:openLog', async () => {
+  await shell.showItemInFolder(logFile);
+  return logFile;
+});
 
 handle('app:openExternal', async ({ url }) => {
   if (!/^https?:\/\//.test(url)) throw new Error('Nur http(s)-Links erlaubt');

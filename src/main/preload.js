@@ -43,7 +43,15 @@ contextBridge.exposeInMainWorld('api', {
     exportList: call('lists:export'),
     importList: call('lists:import')
   },
+  update: {
+    status: call('update:status'),
+    check: call('update:check'),
+    download: call('update:download'),
+    install: call('update:install'),
+    openReleases: call('update:openReleases')
+  },
   openExternal: (url) => ipcRenderer.invoke('app:openExternal', { url }),
+  openLog: call('app:openLog'),
 
   onProgress: (handler) => {
     const listener = (_e, payload) => handler(payload);
@@ -54,5 +62,10 @@ contextBridge.exposeInMainWorld('api', {
     const listener = (_e, theme) => handler(theme);
     ipcRenderer.on('theme:changed', listener);
     return () => ipcRenderer.off('theme:changed', listener);
+  },
+  onUpdate: (handler) => {
+    const listener = (_e, payload) => handler(payload);
+    ipcRenderer.on('update:status', listener);
+    return () => ipcRenderer.off('update:status', listener);
   }
 });

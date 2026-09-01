@@ -38,11 +38,14 @@
       loading: false
     },
     installedMods: [],
-    modsDir: ''
+    modsDir: '',
+    update: { zustand: 'unbekannt' },
+    updateGemeldet: false
   };
 
   const el = {
     nav: document.getElementById('nav'),
+    updateSlot: document.getElementById('update-slot'),
     toolbar: document.getElementById('toolbar'),
     view: document.getElementById('view'),
     scroll: document.getElementById('scroll'),
@@ -117,6 +120,111 @@
       h('div', { class: 'path', title: cfg.mcDir }, cfg.mcDir)
     );
   }
+
+  /* ---------------------------------------------------------------- Updates */
+
+  /**
+   * Ein Update ist eine Statusmeldung, kein Notfall: die Karte in der
+   * Seitenleiste zeigt es ruhig an, gefragt wird erst beim Antippen.
+   */
+  function renderUpdateCard() {
+    clear(el.updateSlot);
+    const u = state.update;
+    if (!u || !['verfuegbar', 'laedt', 'bereit'].includes(u.zustand)) return;
+
+    if (u.zustand === 'laedt') {
+      const fill = h('i', { style: { width: `${Math.round((u.anteil || 0) * 100)}%` } });
+      el.updateSlot.append(
+        h('div', { class: 'update-card' },
+          h('div', { class: 'row' }, icon('download', 14, 2), h('span', { class: 't-cap', style: { fontWeight: '600' } }, 'Update wird geladen')),
+          h('div', { class: 'bar' }, fill),
+          h('div', { class: 't-cap dim', style: { marginTop: '0.25rem' } },
+            u.gesamt ? `${bytes(u.uebertragen || 0)} von ${bytes(u.gesamt)}` : 'läuft…')
+        )
+      );
+      return;
+    }
+
+    const bereit = u.zustand === 'bereit';
+    el.updateSlot.append(
+      h('button', { class: 'update-card', type: 'button', onclick: () => updateDialog() },
+        h('div', { class: 'row' },
+          icon(bereit ? 'refresh' : 'download', 14, 2),
+          h('span', { class: 't-cap', style: { fontWeight: '600' } }, bereit ? 'Update bereit' : `Version ${u.neueVersion} da`)),
+        h('div', { class: 't-cap dim', style: { marginTop: '1px' } },
+          bereit ? 'Neu starten zum Einspielen' : 'Antippen für Details')
+      )
+    );
+  }
+
+  async function updateDialog() {
+    const u = state.update;
+
+    if (u.zustand === 'bereit') {
+      const antwort = await sheet({
+        title: `ModLoom ${u.neueVersion} ist bereit`,
+        subtitle: 'Zum Einspielen startet die App neu. Deine Listen und Einstellungen bleiben erhalten.',
+        actions: [
+          { label: 'Jetzt neu starten', value: 'go', variant: 'primary', icon: 'refresh' },
+          { label: 'Beim nächsten Beenden', value: null }
+        ]
+      });
+      if (antwort === 'go') await window.api.update.install();
+      return;
+    }
+
+    if (u.zustand !== 'verfuegbar') return;
+
+    // Portable: kein Selbstersetzen möglich, deshalb ehrlich auf die Seite verweisen.
+    if (u.nurHinweis || u.portable) {
+      const antwort = await sheet({
+        title: `ModLoom ${u.neueVersion} ist erschienen`,
+        subtitle: 'Die portable Fassung kann sich nicht selbst ersetzen. Lade die neue Datei herunter und ersetze deine ModLoom.exe damit — Listen und Einstellungen bleiben erhalten.',
+        actions: [
+          { label: 'Download-Seite öffnen', value: 'web', variant: 'primary', icon: 'external' },
+          { label: 'Später', value: null }
+        ]
+      });
+      if (antwort === 'web') await window.api.update.openReleases();
+      return;
+    }
+
+    const antwort = await sheet({
+      title: `ModLoom ${u.neueVersion} ist verfügbar`,
+      subtitle: `Du hast ${state.config.appVersion}. Das Update lädt im Hintergrund und wird beim nächsten Start eingespielt.`,
+      actions: [
+        { label: 'Herunterladen', value: 'go', variant: 'primary', icon: 'download' },
+        { label: 'Später', value: null }
+      ]
+    });
+    if (antwort === 'go') await window.api.update.download();
+  }
+
+  function onUpdateStatus(status) {
+    state.update = status || { zustand: 'unbekannt' };
+    renderUpdateCard();
+    if (state.view === 'settings') renderView();
+
+    // Nur einmal pro Sitzung von selbst melden, danach steht es ruhig in der Ecke.
+    if (state.update.zustand === 'verfuegbar' && !state.updateGemeldet) {
+      state.updateGemeldet = true;
+      toast(`ModLoom ${state.update.neueVersion} ist verfügbar`, 'ok', 5000);
+    }
+    if (state.update.zustand === 'bereit') {
+      toast('Update geladen – beim nächsten Start aktiv', 'ok', 5000);
+    }
+  }
+
+  const UPDATE_TEXT = {
+    unbekannt: 'Noch nicht geprüft',
+    entwicklung: 'Im Entwicklungsstart deaktiviert',
+    pruefe: 'Wird geprüft…',
+    aktuell: 'Du hast die neueste Fassung',
+    verfuegbar: 'Eine neuere Fassung ist verfügbar',
+    laedt: 'Wird geladen…',
+    bereit: 'Bereit – wird beim nächsten Start eingespielt',
+    fehler: 'Prüfung fehlgeschlagen'
+  };
 
   /* ---------------------------------------------------------------- Routing */
 
@@ -1294,12 +1402,77 @@
 
         h('div', { class: 'kv' },
           h('div', { class: 'k' },
-            h('div', { class: 't-head' }, 'Version'),
-            h('div', { class: 't-cap dim' }, `ModLoom ${cfg.appVersion || ''}`)),
-          null)
-      )
+            h('div', { class: 't-head' }, 'Fehlerprotokoll'),
+            h('div', { class: 't-cap dim' }, 'Falls die App einmal klemmt: diese Datei hilft bei der Suche.')),
+          h('button', { class: 'btn', type: 'button', onclick: () => window.api.openLog() }, 'Anzeigen'))
+      ),
+
+      updatePanel()
     );
   };
+
+  function updatePanel() {
+    const u = state.update || { zustand: 'unbekannt' };
+    const cfg = state.config;
+
+    const aktion = () => {
+      if (u.zustand === 'bereit') {
+        return h('button', { class: 'btn btn-primary', type: 'button', onclick: () => updateDialog() },
+          icon('refresh', 15), h('span', { class: 'label' }, 'Neu starten'));
+      }
+      if (u.zustand === 'verfuegbar') {
+        return h('button', { class: 'btn btn-primary', type: 'button', onclick: () => updateDialog() },
+          icon('download', 15), h('span', { class: 'label' }, u.nurHinweis || u.portable ? 'Zur Download-Seite' : 'Herunterladen'));
+      }
+      if (u.zustand === 'laedt') {
+        return h('span', { class: 'chip info' }, `${Math.round((u.anteil || 0) * 100)} %`);
+      }
+      return h('button', {
+        class: 'btn',
+        type: 'button',
+        disabled: u.zustand === 'pruefe',
+        onclick: async (e) => {
+          const b = e.currentTarget;
+          b.classList.add('is-busy');
+          const s = h('div', { class: 'spinner' });
+          b.prepend(s);
+          try {
+            const status = await call(window.api.update.check, { still: false });
+            onUpdateStatus(status);
+            if (status.zustand === 'aktuell') toast('ModLoom ist aktuell', 'ok');
+            if (status.zustand === 'fehler') toast(`Update-Prüfung fehlgeschlagen: ${status.fehler}`, 'warn', 6000);
+          } catch {
+            /* gemeldet */
+          } finally {
+            s.remove();
+            b.classList.remove('is-busy');
+          }
+        }
+      }, icon('refresh', 15), h('span', { class: 'label' }, 'Jetzt suchen'));
+    };
+
+    return h('div', { class: 'panel' },
+      h('div', { class: 'kv' },
+        h('div', { class: 'k' },
+          h('div', { class: 't-head' }, `ModLoom ${cfg.appVersion || ''}`),
+          h('div', { class: 't-cap dim' }, UPDATE_TEXT[u.zustand] || UPDATE_TEXT.unbekannt),
+          u.zustand === 'fehler' && u.fehler
+            ? h('div', { class: 't-cap', style: { color: 'var(--amber)', marginTop: '0.25rem' } }, u.fehler)
+            : null,
+          u.portable
+            ? h('div', { class: 't-cap dim-more', style: { marginTop: '0.25rem' } },
+                'Portable Fassung: Updates werden gemeldet, aber nicht selbst eingespielt.')
+            : null),
+        aktion()),
+
+      h('div', { class: 'kv' },
+        h('div', { class: 'k' },
+          h('div', { class: 't-head' }, 'Alle Fassungen'),
+          h('div', { class: 't-cap dim' }, 'Release-Seite auf GitHub mit Änderungsliste.')),
+        h('button', { class: 'btn', type: 'button', onclick: () => window.api.update.openReleases() },
+          'Öffnen', icon('external', 12, 2)))
+    );
+  }
 
   /* ============================================================ Datenabgleich */
 
@@ -1328,10 +1501,15 @@
     state.fabric.selectedGame = state.config.gameVersion || null;
     state.fabric.selectedLoader = state.config.loaderVersion || null;
 
+    state.update = await safe(call(window.api.update.status, {}, { silent: true }), { zustand: 'unbekannt' });
+
     renderNav();
     renderSetupCard();
+    renderUpdateCard();
     setView(state.config.gameVersion ? 'search' : 'fabric');
   }
+
+  window.api.onUpdate(onUpdateStatus);
 
   window.api.onTheme(() => {
     // Farben kommen aus CSS-Variablen; nur die abgeleiteten Flächen neu zeichnen.

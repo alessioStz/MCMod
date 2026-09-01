@@ -1,6 +1,7 @@
 name: Release bauen
 
-# Ein Tag wie v1.0.1 genügt: GitHub baut die .exe-Dateien und hängt sie an ein Release.
+# Ein Tag wie v1.1.0 genügt: GitHub baut die .exe-Dateien, hängt sie an ein
+# Release und legt latest.yml dazu — daran erkennt die App neue Fassungen.
 on:
   push:
     tags:
@@ -24,26 +25,20 @@ jobs:
       - name: Abhängigkeiten installieren
         run: npm ci
 
-      - name: Windows-Pakete bauen
+      - name: Nur bauen (Lauf ohne Tag)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         run: npx electron-builder --win --publish never
 
-      - name: Als Artefakt sichern
+      - name: Bauen und Release veröffentlichen
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --publish always
+
+      - name: Ergebnis als Artefakt sichern
         uses: actions/upload-artifact@v4
         with:
           name: ModLoom-windows
-          path: dist/*.exe
-
-      - name: Release veröffentlichen
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $dateien = Get-ChildItem dist/*.exe | ForEach-Object { $_.FullName }
-          $tag = $env:GITHUB_REF_NAME
-          # Gibt es das Release schon (etwa von Hand angelegt), nur die Dateien ersetzen.
-          gh release view $tag *> $null
-          if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag @dateien --clobber
-          } else {
-            gh release create $tag @dateien --title "ModLoom $tag" --generate-notes
-          }
+          path: |
+            dist/*.exe
+            dist/latest.yml

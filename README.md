@@ -8,10 +8,11 @@ Immer die neueste Fassung, ohne GitHub-Konto:
 
 | Datei | Zweck |
 | --- | --- |
-| [**Setup**](https://github.com/alessioStz/MCMod/releases/latest/download/ModLoom-1.0.0-Setup.exe) | Installation mit Startmenü-Eintrag, Zielordner frei wählbar |
-| [**Portable**](https://github.com/alessioStz/MCMod/releases/latest/download/ModLoom-1.0.0-portable.exe) | Startet direkt, keine Installation |
+| [**Setup**](https://github.com/alessioStz/MCMod/releases/latest/download/ModLoom-Setup.exe) | Installation mit Startmenü-Eintrag, **hält sich selbst aktuell** |
+| [**Portable**](https://github.com/alessioStz/MCMod/releases/latest/download/ModLoom-Portable.exe) | Startet direkt, keine Installation |
 
-Alle Fassungen: [Releases](https://github.com/alessioStz/MCMod/releases)
+Die beiden Links zeigen immer auf die neueste Fassung und bleiben gültig — einmal
+weitergeben genügt. Alle Fassungen: [Releases](https://github.com/alessioStz/MCMod/releases)
 
 Beide sind unsigniert — Windows SmartScreen meldet sich beim ersten Start einmal
 ("Weitere Informationen" → "Trotzdem ausführen").
@@ -51,6 +52,19 @@ Anschluss bietet die App an, die gesicherte Liste für die neue Version neu zu i
 mitinstalliert und in der Übersicht als solche gekennzeichnet. Abschaltbar in den
 Einstellungen.
 
+## Updates
+
+Die **Setup-Fassung** sucht beim Start still nach einer neueren Version. Gibt es eine,
+erscheint ein ruhiger Hinweis unten in der Seitenleiste; heruntergeladen und eingespielt
+wird erst nach Zustimmung. Das Einspielen passiert beim nächsten Start, Listen und
+Einstellungen bleiben erhalten. Von Hand suchen lässt sich unter *Einstellungen*.
+
+Die **portable Fassung** kann sich bauartbedingt nicht selbst ersetzen. Sie meldet nur,
+dass eine neue Version da ist, und öffnet auf Wunsch die Download-Seite — die neue
+`ModLoom-Portable.exe` ersetzt dann einfach die alte.
+
+Grundlage ist `latest.yml` im GitHub-Release, das der Build-Workflow automatisch mitlegt.
+
 ## Sicherheitsnetz
 
 Entfernte Dateien wandern in den **Papierkorb**, nicht in den endgültigen Nirwana — ein
@@ -66,6 +80,7 @@ werden, entscheidet eine Checkbox im Dialog.
 | Mods | `<Minecraft-Ordner>\mods` |
 | Verwaltungsdaten der Mods | `<Minecraft-Ordner>\mods\.modloom.json` |
 | Listen & Einstellungen | `%APPDATA%\ModLoom\config.json` |
+| Fehlerprotokoll | `%APPDATA%\ModLoom\modloom.log` (bei jedem Start neu) |
 
 Ein anderer Minecraft-Ordner (Prism, MultiMC, ein zweiter Launcher) lässt sich in den
 Einstellungen setzen — es muss nur der Ordner sein, der `mods` und `versions` enthält.
@@ -87,7 +102,8 @@ Getestet mit Node 22 und Electron 33.
 
 ```
 src/main/     Node-Seite: main.js (Fenster + IPC), fabric.js, modrinth.js,
-              mods.js (Installation/Manifest), store.js (Listen), net.js (Download + SHA1)
+              mods.js (Installation/Manifest), store.js (Listen), net.js (Download + SHA1),
+              updater.js (Updates aus den GitHub-Releases)
 src/renderer/ Oberfläche: index.html, styles.css, app.js (Ansichten),
               ui.js (Sheets, Menüs, Toasts), spring.js (Federn)
 ```

@@ -208,6 +208,24 @@ a { color: var(--accent); text-decoration: none; }
   text-align: left;
 }
 
+/* Update-Hinweis: sitzt über der Setup-Karte, drängt sich aber nicht auf. */
+.update-card {
+  width: 100%;
+  text-align: left;
+  display: block;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: var(--r-md);
+  padding: 0.5rem 0.625rem;
+  margin-bottom: 0.5rem;
+  transition: transform 130ms cubic-bezier(0.32, 0.72, 0, 1), background-color 130ms ease-out;
+}
+
+.update-card:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.update-card:active { transform: scale(0.98); }
+.update-card .row { display: flex; align-items: center; gap: 0.375rem; color: var(--accent); }
+.update-card .bar { margin-top: 0.375rem; }
+
 .dot { width: 7px; height: 7px; border-radius: 99px; flex: none; background: var(--label-3); }
 .dot.on { background: var(--green); }
 .dot.off { background: var(--amber); }
