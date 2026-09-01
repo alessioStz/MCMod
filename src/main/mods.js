@@ -156,6 +156,7 @@ async function installMany(mcDir, entries, gameVersion, { autoDependencies = tru
     try {
       await download(version.file.url, dest, {
         sha1: version.file.sha1,
+        size: version.file.size,
         onProgress: (received, size) => onEvent({ type: 'progress', title: entry.title, received, size })
       });
 

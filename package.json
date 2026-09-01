@@ -1,7 +1,7 @@
 {
   "name": "modloom",
   "productName": "ModLoom",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Fabric-Versionen installieren und Modrinth-Mods als Listen verwalten",
   "main": "src/main/main.js",
   "author": "ModLoom",
