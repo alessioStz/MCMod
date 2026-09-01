@@ -39,6 +39,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $dateien = Get-ChildItem dist/*.exe | ForEach-Object { $_.FullName }
-          gh release create "$env:GITHUB_REF_NAME" @dateien `
-            --title "ModLoom $env:GITHUB_REF_NAME" `
-            --generate-notes
+          $tag = $env:GITHUB_REF_NAME
+          # Gibt es das Release schon (etwa von Hand angelegt), nur die Dateien ersetzen.
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag @dateien --clobber
+          } else {
+            gh release create $tag @dateien --title "ModLoom $tag" --generate-notes
+          }
