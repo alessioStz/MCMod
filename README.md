@@ -14,6 +14,10 @@ Immer die neueste Fassung, ohne GitHub-Konto:
 Die beiden Links zeigen immer auf die neueste Fassung und bleiben gültig — einmal
 weitergeben genügt. Alle Fassungen: [Releases](https://github.com/alessioStz/MCMod/releases)
 
+Die portable Fassung entpackt sich bei jedem Start selbst und braucht dafür rund 7 bis 10
+Sekunden, bis das Fenster erscheint; beim ersten Mal länger, weil Windows die Datei prüft.
+Die Setup-Fassung startet sofort.
+
 Beide sind unsigniert — Windows SmartScreen meldet sich beim ersten Start einmal
 ("Weitere Informationen" → "Trotzdem ausführen").
 
