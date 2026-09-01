@@ -1,0 +1,48 @@
+{
+  "name": "modloom",
+  "productName": "ModLoom",
+  "version": "1.0.0",
+  "description": "Fabric-Versionen installieren und Modrinth-Mods als Listen verwalten",
+  "main": "src/main/main.js",
+  "author": "ModLoom",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win",
+    "pack": "electron-builder --win --dir"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "de.modloom.app",
+    "productName": "ModLoom",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "portable": {
+      "artifactName": "ModLoom-${version}-portable.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "ModLoom-${version}-Setup.exe",
+      "shortcutName": "ModLoom"
+    }
+  }
+}
