@@ -35,6 +35,22 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npx electron-builder --win --publish always
 
+      # electron-builder benennt das Release nur mit der nackten Versionsnummer.
+      # electron-updater liest den Titel als releaseName aus, und in der
+      # Release-Liste soll der Produktname stehen — also nachziehen.
+      - name: Release benennen
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $version = $tag -replace '^v', ''
+          $titel = "ModLoom $version"
+          gh release edit $tag --title $titel
+          $ist = gh release view $tag --json name --jq .name
+          if ($ist -ne $titel) { throw "Titel ist '$ist', erwartet '$titel'" }
+          Write-Host "Release heißt jetzt: $ist"
+
       - name: Ergebnis als Artefakt sichern
         uses: actions/upload-artifact@v4
         with:
