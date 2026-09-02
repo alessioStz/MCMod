@@ -148,12 +148,11 @@ a { color: var(--accent); text-decoration: none; }
 .brand-mark {
   width: 1.75rem;
   height: 1.75rem;
-  border-radius: 8px;
-  background: linear-gradient(160deg, #5ac8fa, #007aff 55%, #5e5ce6);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), var(--shadow-1);
-  display: grid;
-  place-items: center;
-  color: #fff;
+  border-radius: 7px;
+  /* Das Logo bringt seine eigene abgerundete Form mit; der Radius fängt nur
+     die Kanten ab, der Schatten hebt es leicht von der Seitenleiste ab. */
+  object-fit: cover;
+  box-shadow: var(--shadow-1);
   flex: none;
 }
 
