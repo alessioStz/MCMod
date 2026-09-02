@@ -1,6 +1,10 @@
+<img src="src/renderer/logo.png" width="96" alt="ModLoom" align="left" />
+
 # ModLoom
 
 Windows-App zum Installieren von Fabric und zum Verwalten von Modrinth-Mods in Listen.
+
+<br clear="left" />
 
 ## Herunterladen
 
